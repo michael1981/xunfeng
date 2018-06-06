@@ -7,7 +7,7 @@ import urllib2
 def get_plugin_info():
     plugin_info = {
         "name": "IIS WebDav",
-        "info": "开启了WebDav且配置不但可导致攻击者直接上传webshell，进而导致服务器被入侵控制。",
+        "info": "开启了WebDav且配置不当可导致攻击者直接上传webshell，进而导致服务器被入侵控制。",
         "level": "紧急",
         "type": "任意文件上传",
         "author": "wolf@YSRC",
@@ -23,7 +23,7 @@ def check(ip, port, timeout):
         socket.setdefaulttimeout(timeout)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((ip, port))
-        flag = "PUT /vultest.txt HTTP/1.1\r\nContent-Length: 9\r\n\r\nxxscan0\r\n\r\n"
+        flag = "PUT /vultest.txt HTTP/1.1\r\nHost: %s:%d\r\nContent-Length: 9\r\n\r\nxxscan0\r\n\r\n" % (ip, port)
         s.send(flag)
         time.sleep(1)
         data = s.recv(1024)

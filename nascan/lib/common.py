@@ -4,6 +4,7 @@ import socket
 import log
 import datetime
 import time
+import base64
 
 def format_config(config_name, config_info):
     mark_list = []
@@ -32,7 +33,7 @@ def get_config():
             config[name] = config_info['config'][name]['value']
     return config
 
-def monitor(CONFIG_INI, STATISTICS):
+def monitor(CONFIG_INI, STATISTICS, NACHANGE):
     while True:
         try:
             time_ = datetime.datetime.now()
@@ -41,10 +42,11 @@ def monitor(CONFIG_INI, STATISTICS):
             if date_ not in STATISTICS: STATISTICS[date_] = {"add": 0, "update": 0, "delete": 0}
             mongo.na_db.Statistics.update({"date": date_}, {"$set": {"info": STATISTICS[date_]}}, upsert=True)
             new_config = get_config()
+            if base64.b64encode(CONFIG_INI["Scan_list"]) != base64.b64encode(new_config["Scan_list"]):NACHANGE[0] = 1
             CONFIG_INI.clear()
             CONFIG_INI.update(new_config)
         except Exception, e:
-            pass
+            print e
         time.sleep(30)
 
 
@@ -76,6 +78,7 @@ def cruise(STATISTICS,MASSCAN_AC):
                     try:
                         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                         sock.connect((ip, int(port)))
+                        sock.close()
                     except Exception, e:
                         time_ = datetime.datetime.now()
                         date_ = time_.strftime('%Y-%m-%d')
@@ -88,4 +91,4 @@ def cruise(STATISTICS,MASSCAN_AC):
                         mongo.NA_HISTORY.insert(history_info)
             except:
                 pass
-        time.sleep(600)
+        time.sleep(3600)

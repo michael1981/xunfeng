@@ -38,6 +38,37 @@ $('.zmdi-close').click(function () {
         });
 });
 
+$('.deleteall').click(function () {
+    swal({
+            title: "确认删除？",
+            text: "所有删除操作将不可逆，请谨慎操作",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#DD6B55",
+            confirmButtonText: "确定",
+            cancelButtonText: "取消",
+            closeOnConfirm: false
+        },
+        function () {
+            $.post('/deleteall', function (e) {
+                if (e == 'success') {
+                    swal("已删除", '', "success");
+                    $('.confirm').click(function () {
+                        location.href = "/task";
+                    })
+                }
+                else {
+                    swal("删除失败", '', "error");
+                    $('.confirm').click(function () {
+                        location.href = "/task";
+                    })
+                }
+
+            })
+
+        });
+});
+
 $('.recheck').click(function () {
     taskid = $(this).parents('h4').children().first().attr('href').split('=')[1];
     swal({
@@ -60,16 +91,36 @@ $('.recheck').click(function () {
 });
 
 
-function nextPage() {
+function tasknextPage() {
     page = parseInt(getQueryString('page') == null ? 1 : getQueryString('page')) + 1;
-    location.href = '/task?page=' + page;
+    if (page > $('.pagination-split').children().length - 2) {
+        alert('已到达末页');
+    } else {
+        oripage = page - 1;
+        if (getQueryString('page') == null) {
+            location.href = location.href + "?page=" + page.toString();
+        } else {
+            location.href = location.href.replace("?page=" + oripage.toString(), "?page=" + page.toString());
+        }
+    }
 }
-function prePage() {
+function taskprePage() {
     page = parseInt(getQueryString('page') == null ? 1 : getQueryString('page')) - 1;
     if (page > 0) {
         location.href = '/task?page=' + page;
     }
     else {
         alert('已到达首页');
+    }
+}
+
+function taskturnTo(page) {
+    curPage = getQueryString('page');
+    if (curPage != null) {
+        url = location.href.replace("?page=" + getQueryString('page'), "?page=" + page);
+        location.href = url
+    } else {
+        url = location.href + "?page=" + page;
+        location.href = url
     }
 }

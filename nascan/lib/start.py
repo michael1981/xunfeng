@@ -4,9 +4,11 @@ import Queue
 import threading
 import scan
 import icmp
+import cidr
 
 AC_PORT_LIST = {}
 MASSCAN_AC = 0
+
 
 class ThreadNum(threading.Thread):
     def __init__(self, queue):
@@ -15,9 +17,11 @@ class ThreadNum(threading.Thread):
 
     def run(self):
         while True:
-            if self.queue.empty(): break
             try:
-                task_host = self.queue.get()
+                task_host = self.queue.get(block=False)
+            except:
+                break
+            try:
                 if self.mode:
                     port_list = AC_PORT_LIST[task_host]
                 else:
@@ -26,25 +30,32 @@ class ThreadNum(threading.Thread):
                 _s.config_ini = self.config_ini  # 提供配置信息
                 _s.statistics = self.statistics  # 提供统计信息
                 _s.run()
-            except Exception,e:
+            except Exception, e:
                 print e
             finally:
                 self.queue.task_done()
 
+
 class start:
-    def __init__(self,config):#默认配置
+    def __init__(self, config):  # 默认配置
         self.config_ini = config
         self.queue = Queue.Queue()
         self.thread = int(self.config_ini['Thread'])
         self.scan_list = self.config_ini['Scan_list'].split('\n')
         self.mode = int(self.config_ini['Masscan'].split('|')[0])
         self.icmp = int(self.config_ini['Port_list'].split('|')[0])
+        self.white_list = self.config_ini.get('White_list', '').split('\n')
 
     def run(self):
         global AC_PORT_LIST
         all_ip_list = []
         for ip in self.scan_list:
+            if "/" in ip: ip = cidr.CIDR(ip)
+            if not ip:continue
             ip_list = self.get_ip_list(ip)
+            for white_ip in self.white_list:
+                if white_ip in ip_list:
+                    ip_list.remove(white_ip)
             if self.mode == 1:
                 self.masscan_path = self.config_ini['Masscan'].split('|')[2]
                 self.masscan_rate = self.config_ini['Masscan'].split('|')[1]
@@ -96,7 +107,7 @@ class start:
                 for ip_num in range(ip_start, ip_end + 1):
                     ip_list_tmp.append(numtoip(ip_num))
             else:
-                print '-h wrong format'
+                print 'IP format error'
         else:
             ip_split = ip.split('.')
             net = len(ip_split)
@@ -112,7 +123,7 @@ class start:
             elif net == 4:
                 ip_list_tmp.append(ip)
             else:
-                print "-h wrong format"
+                print "IP format error"
         return ip_list_tmp
 
     def get_ac_ip(self, ip_list):
